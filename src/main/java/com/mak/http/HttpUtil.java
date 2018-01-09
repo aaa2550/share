@@ -1,4 +1,4 @@
-package com.mak.config;
+package com.mak.http;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -102,6 +102,30 @@ public class HttpUtil {
 
             };
             res = httpclient.execute(httpget, responseHandler);
+        } catch (Exception e) {
+            logger.error("url:{}",url, e);
+        }
+        return res;
+    }
+
+    public static String httpsGet(String url) {
+        String res = null;
+        try {
+            HttpGet httpget = new HttpGet(url);
+            ResponseHandler<String> responseHandler = new ResponseHandler<String>() {
+                @Override
+                public String handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
+                    int status = response.getStatusLine().getStatusCode();
+                    if (status >= 200 && status < 300) {
+                        HttpEntity entity = response.getEntity();
+                        return entity != null ? EntityUtils.toString(entity, CHARSET_UTF8.toString()) : null;
+                    } else {
+                        throw new ClientProtocolException("Unexpected response status: " + status);
+                    }
+                }
+
+            };
+            res = MySSLSocketFactory.getNewHttpClient().execute(httpget, responseHandler);
         } catch (Exception e) {
             logger.error("url:{}",url, e);
         }

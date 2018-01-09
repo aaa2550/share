@@ -2,7 +2,7 @@ package com.mak.api;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
-import com.mak.config.HttpUtil;
+import com.mak.http.HttpUtil;
 import com.mak.dto.Share;
 import com.mak.dto.ShareDay;
 import com.mak.dto.ShareDayDetail;
@@ -14,10 +14,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -26,6 +23,13 @@ import java.util.stream.Collectors;
 public class ApiClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ApiClient.class);
+
+    public static List<String> proxyList(String url) {
+        String html = HttpUtil.getIntance().get(url);
+        System.out.println(html);
+        html = html.replaceAll("\r", "").replaceAll("\n","").replaceAll("\t","").replaceAll(" ","");
+        return null;
+    }
 
     public static List<Share> sharesList(String urlStr) {
         try {
@@ -38,28 +42,40 @@ public class ApiClient {
         }
     }
 
-    public static List<ShareDayDetail> shareDayDetail(String urlStr) {
+    public static List<ShareDayDetail> shareDayDetail(String urlStr, String code, String name, Date date) {
         try {
-            URL url = new URL(urlStr);
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openStream(), "GBK"));
-            return bufferedReader.lines().skip(1).map(l->toShareSingeDayDetail(l.split(","))).collect(Collectors.toList());
+            while (true) {
+                URL url = new URL(urlStr);
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openStream(), "GBK"));
+                return bufferedReader.lines().parallel().filter(s->!s.startsWith("alert")).skip(1).map(l->toShareSingeDayDetail(l.split("\t"), code, name, date)).collect(Collectors.toList());
+            }
         } catch (IOException e) {
             e.printStackTrace();
             return Collections.emptyList();
         }
     }
 
-    public static ShareDayDetail toShareSingeDayDetail(String[] shareSingeDayDetailParam) {
-        ShareDayDetail shareSingeDayDetail = new ShareDayDetail();
-        shareSingeDayDetail.setTradeTime(DateUtil.parse(shareSingeDayDetailParam[0], DateUtil.DEFAULT_TIME));
-        shareSingeDayDetail.setPrice(Double.valueOf(shareSingeDayDetailParam[1]));
-        shareSingeDayDetail.setPriceChange(Double.valueOf(shareSingeDayDetailParam[2]));
-        shareSingeDayDetail.setNum(Integer.valueOf(shareSingeDayDetailParam[3]));
-        shareSingeDayDetail.setMoney(Double.valueOf(shareSingeDayDetailParam[4]));
-        shareSingeDayDetail.setNature(shareSingeDayDetailParam[5]);
-        return shareSingeDayDetail;
+    public static ShareDayDetail toShareSingeDayDetail(String[] shareSingeDayDetailParam, String code, String name, Date date) {
+        try {
+            ShareDayDetail shareSingeDayDetail = new ShareDayDetail();
+            shareSingeDayDetail.setCode(code);
+            shareSingeDayDetail.setName(name);
+            shareSingeDayDetail.setDate(date);
+            shareSingeDayDetail.setTradeTime(DateUtil.parse(shareSingeDayDetailParam[0], DateUtil.DEFAULT_TIME));
+            shareSingeDayDetail.setPrice(Double.valueOf(shareSingeDayDetailParam[1]));
+            shareSingeDayDetail.setPriceChange("--".equals(shareSingeDayDetailParam[2]) ? 0.0 : Double.valueOf(shareSingeDayDetailParam[2]));
+            shareSingeDayDetail.setNum(Integer.valueOf(shareSingeDayDetailParam[3]));
+            shareSingeDayDetail.setMoney(Double.valueOf(shareSingeDayDetailParam[4]));
+            shareSingeDayDetail.setNature(shareSingeDayDetailParam[5]);
+            return shareSingeDayDetail;
+        } catch (Throwable e) {
+            e.printStackTrace();
+            System.out.println("toShareSingeDayDetail error.shareSingeDayDetailParam=" + Arrays.asList(shareSingeDayDetailParam));
+            logger.error("toShareSingeDayDetail error.shareSingeDayDetailParam=" + Arrays.asList(shareSingeDayDetailParam), e);
+            return null;
+        }
     }
-    
+
     private static Share toShare(String[] shareParam) {
         Share share = new Share();
         share.setCode(shareParam[0]);

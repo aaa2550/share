@@ -30,6 +30,8 @@ public class Constant {
 
     public final static String API_SHARES_DAY_DETAIL = PROPERTIES.getProperty("api.shares.day.detail");
 
+    public final static String API_PROXY = PROPERTIES.getProperty("api.proxy");
+
     public final static String FILE_ROOT = PROPERTIES.getProperty("file.root");
 
     public final static String FILE_PATH_SYNCHRONIZED_HISTORY = FILE_ROOT + "synchronizedHistory.sql";

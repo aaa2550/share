@@ -4,9 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * Created by yanghailong on 2018/1/9.
@@ -31,13 +33,25 @@ public class JdbcSql {
             ") ENGINE=MyISAM DEFAULT CHARSET=utf8;";
 
     private Connection connection;
-    final static ConcurrentHashMap<String, String> tables = new ConcurrentHashMap<>();
+    final static ConcurrentSkipListSet<String> tables = new ConcurrentSkipListSet<>();
 
     public static JdbcSql singeJdbcSql;
 
     public JdbcSql(Connection connection) {
         this.connection = connection;
         singeJdbcSql = this;
+        initTables();
+    }
+
+    private void initTables() {
+        try {
+            ResultSet resultSet = connection.createStatement().executeQuery("show tables");
+            while(resultSet.next()){
+                tables.add(resultSet.getString(1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public static JdbcSql getSingeJdbcSql() {

@@ -8,6 +8,8 @@ import java.util.Date;
  */
 public interface SynchronizedService {
 
+    void synchronizedProxys();
+
     void synchronizedShares();
 
     void synchronizedHistory();

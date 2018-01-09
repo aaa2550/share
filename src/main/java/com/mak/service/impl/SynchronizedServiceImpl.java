@@ -8,6 +8,7 @@ import com.mak.dao.ShareDayDetailDao;
 import com.mak.dto.Share;
 import com.mak.dto.ShareDay;
 import com.mak.dto.ShareDayDetail;
+import com.mak.http.HttpUtil;
 import com.mak.service.SynchronizedService;
 import com.mak.util.DateUtil;
 import org.slf4j.Logger;
@@ -18,6 +19,8 @@ import javax.annotation.Resource;
 import java.io.*;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by lenovo on 2018/1/6.
@@ -35,6 +38,11 @@ public class SynchronizedServiceImpl implements SynchronizedService {
 
     @Resource
     private ShareDayDetailDao shareDayDetailDao;
+
+    @Override
+    public void synchronizedProxys() {
+        Stream.iterate(1, i->i+1).limit(10).map(i->ApiClient.proxyList(Constant.API_PROXY + i)).collect(Collectors.toList());
+    }
 
     @Override
     public void synchronizedShares() {
@@ -65,7 +73,8 @@ public class SynchronizedServiceImpl implements SynchronizedService {
             for (Share share : shares) {
                 //BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(Constant.FILE_PATH_SYNCHRONIZED_DAY_DETAIL)));
                 List<ShareDay> shareDays = shareSingeDayDao.findDate(share.getCode());
-                shareDays.forEach(s -> {
+                shareDays.parallelStream().forEach(s -> {
+                    System.out.println("execute share=" + share.getCode() + ",date=" + DateUtil.format(s.getDate()));
                     synchronizedDayDetail(share.getCode(), share.getName(), s.getDate(), null);
                 });
                 i++;
@@ -80,7 +89,7 @@ public class SynchronizedServiceImpl implements SynchronizedService {
     @Override
     public void synchronizedDayDetail(String code, String name, Date date, BufferedWriter bufferedWriter) {
         String codeParam = code.startsWith("6") ? "sh" + code : "sz" + code;
-        List<ShareDayDetail> shareDayDetails = ApiClient.shareDayDetail(Constant.FILE_PATH_SYNCHRONIZED_DAY_DETAIL + "?date="+DateUtil.format(date)+"&symbol=" + codeParam);
+        List<ShareDayDetail> shareDayDetails = ApiClient.shareDayDetail(Constant.API_SHARES_DAY_DETAIL + "?date="+DateUtil.format(date)+"&symbol=" + codeParam, code, name, date);
         shareDayDetailDao.insert(shareDayDetails);
     }
 

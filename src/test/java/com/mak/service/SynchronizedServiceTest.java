@@ -25,6 +25,11 @@ public class SynchronizedServiceTest {
     private ShareDayDetailDao shareSingeDayDetailDao;
 
     @Test
+    public void testSynchronizedProxys() {
+        synchronizedService.synchronizedProxys();
+    }
+
+    @Test
     public void testSynchronizedShares() {
         synchronizedService.synchronizedShares();
     }
