@@ -1,6 +1,7 @@
 package com.mak.service;
 
 import com.mak.SharesApplication;
+import com.mak.dao.ShareDayDetailDao;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -20,6 +21,9 @@ public class SynchronizedServiceTest {
     @Resource
     private SynchronizedService synchronizedService;
 
+    @Resource
+    private ShareDayDetailDao shareSingeDayDetailDao;
+
     @Test
     public void testSynchronizedShares() {
         synchronizedService.synchronizedShares();
@@ -28,6 +32,11 @@ public class SynchronizedServiceTest {
     @Test
     public void testSynchronizedHistory() {
         synchronizedService.synchronizedHistory();
+    }
+
+    @Test
+    public void synchronizedDayDetail() {
+        synchronizedService.synchronizedDayDetail();
     }
 
 }

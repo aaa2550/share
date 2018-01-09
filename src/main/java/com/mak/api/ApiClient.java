@@ -4,7 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.mak.config.HttpUtil;
 import com.mak.dto.Share;
-import com.mak.dto.ShareSingeDay;
+import com.mak.dto.ShareDay;
+import com.mak.dto.ShareDayDetail;
 import com.mak.util.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,28 @@ public class ApiClient {
             return Collections.emptyList();
         }
     }
+
+    public static List<ShareDayDetail> shareDayDetail(String urlStr) {
+        try {
+            URL url = new URL(urlStr);
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openStream(), "GBK"));
+            return bufferedReader.lines().skip(1).map(l->toShareSingeDayDetail(l.split(","))).collect(Collectors.toList());
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
+    public static ShareDayDetail toShareSingeDayDetail(String[] shareSingeDayDetailParam) {
+        ShareDayDetail shareSingeDayDetail = new ShareDayDetail();
+        shareSingeDayDetail.setTradeTime(DateUtil.parse(shareSingeDayDetailParam[0], DateUtil.DEFAULT_TIME));
+        shareSingeDayDetail.setPrice(Double.valueOf(shareSingeDayDetailParam[1]));
+        shareSingeDayDetail.setPriceChange(Double.valueOf(shareSingeDayDetailParam[2]));
+        shareSingeDayDetail.setNum(Integer.valueOf(shareSingeDayDetailParam[3]));
+        shareSingeDayDetail.setMoney(Double.valueOf(shareSingeDayDetailParam[4]));
+        shareSingeDayDetail.setNature(shareSingeDayDetailParam[5]);
+        return shareSingeDayDetail;
+    }
     
     private static Share toShare(String[] shareParam) {
         Share share = new Share();
@@ -58,15 +81,15 @@ public class ApiClient {
         return share;
     }
 
-    public static List<ShareSingeDay> history(String url, String code, String name) {
+    public static List<ShareDay> history(String url, String code, String name) {
         try {
             String result = HttpUtil.getIntance().get(url);
             Map<String, JSONArray> map = JSON.parseObject(result, Map.class);
-            List<ShareSingeDay> shareSingeDays = new ArrayList<>();
+            List<ShareDay> shareSingeDays = new ArrayList<>();
             JSONArray jsonArray = map.get("record");
             for (int i = 0; i < jsonArray.size(); i++) {
                 JSONArray jsonArray1 = (JSONArray)jsonArray.get(i);
-                ShareSingeDay shareSingeDay = new ShareSingeDay();
+                ShareDay shareSingeDay = new ShareDay();
                 shareSingeDay.setCode(code);
                 shareSingeDay.setName(name);
                 shareSingeDay.setDate(DateUtil.parse(jsonArray1.get(0).toString()));

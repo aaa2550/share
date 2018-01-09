@@ -28,6 +28,12 @@ public class Constant {
 
     public final static String API_HISTORY = PROPERTIES.getProperty("api.history");
 
-    public final static String API_HISTORY_TEMP_FILE = PROPERTIES.getProperty("api.shares.temp_file");
+    public final static String API_SHARES_DAY_DETAIL = PROPERTIES.getProperty("api.shares.day.detail");
+
+    public final static String FILE_ROOT = PROPERTIES.getProperty("file.root");
+
+    public final static String FILE_PATH_SYNCHRONIZED_HISTORY = FILE_ROOT + "synchronizedHistory.sql";
+
+    public final static String FILE_PATH_SYNCHRONIZED_DAY_DETAIL = FILE_ROOT + "synchronizedDayDetail.sql";
 
 }

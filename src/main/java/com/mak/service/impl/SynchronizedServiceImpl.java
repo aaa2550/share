@@ -3,14 +3,20 @@ package com.mak.service.impl;
 import com.mak.api.ApiClient;
 import com.mak.common.Constant;
 import com.mak.dao.ShareDao;
-import com.mak.dao.ShareSingeDayDao;
+import com.mak.dao.ShareDayDao;
+import com.mak.dao.ShareDayDetailDao;
 import com.mak.dto.Share;
-import com.mak.dto.ShareSingeDay;
+import com.mak.dto.ShareDay;
+import com.mak.dto.ShareDayDetail;
 import com.mak.service.SynchronizedService;
+import com.mak.util.DateUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.*;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -19,11 +25,16 @@ import java.util.List;
 @Service
 public class SynchronizedServiceImpl implements SynchronizedService {
 
+    private static final Logger logger = LoggerFactory.getLogger(SynchronizedServiceImpl.class);
+
     @Resource
     private ShareDao shareDao;
 
     @Resource
-    private ShareSingeDayDao shareSingeDayDao;
+    private ShareDayDao shareSingeDayDao;
+
+    @Resource
+    private ShareDayDetailDao shareDayDetailDao;
 
     @Override
     public void synchronizedShares() {
@@ -36,37 +47,64 @@ public class SynchronizedServiceImpl implements SynchronizedService {
         List<Share> shares = shareDao.findAll();
         try {
             int[] index = new int[1];
-            BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("C:\\Users\\lenovo\\Desktop\\sql.sql")));
-            shares.forEach(s->{
+            BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(Constant.FILE_PATH_SYNCHRONIZED_HISTORY)));
+            shares.forEach(s -> {
                 System.out.println(++index[0]);
                 synchronizedHistory(s.getCode(), s.getName(), bufferedWriter);
             });
-        } catch (FileNotFoundException e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }
 
     @Override
+    public void synchronizedDayDetail() {
+        List<Share> shares = shareDao.findAll();
+        int i = 0;
+        try {
+            for (Share share : shares) {
+                //BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(Constant.FILE_PATH_SYNCHRONIZED_DAY_DETAIL)));
+                List<ShareDay> shareDays = shareSingeDayDao.findDate(share.getCode());
+                shareDays.forEach(s -> {
+                    synchronizedDayDetail(share.getCode(), share.getName(), s.getDate(), null);
+                });
+                i++;
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            System.out.println("synchronizedDayDetail error.i=" + i);
+            logger.error("synchronizedDayDetail error.i=" + i, e);
+        }
+    }
+
+    @Override
+    public void synchronizedDayDetail(String code, String name, Date date, BufferedWriter bufferedWriter) {
+        String codeParam = code.startsWith("6") ? "sh" + code : "sz" + code;
+        List<ShareDayDetail> shareDayDetails = ApiClient.shareDayDetail(Constant.FILE_PATH_SYNCHRONIZED_DAY_DETAIL + "?date="+DateUtil.format(date)+"&symbol=" + codeParam);
+        shareDayDetailDao.insert(shareDayDetails);
+    }
+
+    @Override
     public void synchronizedHistory(String code, String name, BufferedWriter bufferedWriter) {
-        String codeParam = code.startsWith("6")? "sh" + code : "sz" + code;
-        List<ShareSingeDay> shareSingeDays = ApiClient.history(Constant.API_HISTORY + "?code="+codeParam+"&type=last", code, name);
+        String codeParam = code.startsWith("6") ? "sh" + code : "sz" + code;
+        List<ShareDay> shareSingeDays = ApiClient.history(Constant.API_HISTORY + "?code=" + codeParam + "&type=last", code, name);
         StringBuilder stringBuilder = new StringBuilder();
-        shareSingeDays.forEach(s->stringBuilder.append(shareSingeDayToString(s)));
+        shareSingeDays.forEach(s -> stringBuilder.append(shareSingeDayToString(s)));
         try {
             bufferedWriter.write(stringBuilder.toString());
-        } catch (IOException e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
         //shareSingeDayDao.insert(shareSingeDays);
     }
 
-    private String shareSingeDayToString(ShareSingeDay shareSingeDay) {
+    private String shareSingeDayToString(ShareDay shareSingeDay) {
         return ("insert into share_singe_day(code,name,date,open,high,close," +
                 "low,volume,priceChange,p1Change,ma5,ma10,ma20,v1Ma5,v1Ma10,v1Ma20,turnover) " +
-                "values(") +
-                shareSingeDay.getCode() + "," +
-                shareSingeDay.getName() + "," +
-                shareSingeDay.getDate() + "," +
+                "values('") +
+                shareSingeDay.getCode() + "','" +
+                shareSingeDay.getName() + "','" +
+                DateUtil.format(shareSingeDay.getDate(), DateUtil.DEFAULT_TIME) + "'," +
                 shareSingeDay.getOpen() + "," +
                 shareSingeDay.getHigh() + "," +
                 shareSingeDay.getClose() + "," +
