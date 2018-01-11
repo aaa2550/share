@@ -2,10 +2,8 @@ package com.mak.api;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
+import com.mak.dto.*;
 import com.mak.http.HttpUtil;
-import com.mak.dto.Share;
-import com.mak.dto.ShareDay;
-import com.mak.dto.ShareDayDetail;
 import com.mak.util.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +22,27 @@ public class ApiClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ApiClient.class);
 
-    public static List<String> proxyList(String url) {
+    public static List<ProxyInfo> proxyList(String url) {
         String html = HttpUtil.getIntance().get(url);
         System.out.println(html);
+
+
         html = html.replaceAll("\r", "").replaceAll("\n","").replaceAll("\t","").replaceAll(" ","");
-        return null;
+        html = html.substring(html.indexOf("<tbody>") + "<tbody>".length(), html.lastIndexOf("<tdcolspan=\"7\">"));
+        List<ProxyInfo> proxyInfos = new ArrayList<>();
+        while (html.contains("<tr>")) {
+            String singeHtml = html.substring(html.indexOf("<tr>") + "<tr>".length(), html.indexOf("</tr>") + "</tr>".length());
+            html = html.substring(html.indexOf(singeHtml), singeHtml.length());
+            proxyInfos.add(parser(singeHtml));
+        }
+        return proxyInfos;
+    }
+
+    private static ProxyInfo parser(String html) {
+        ProxyInfo proxyInfo = new ProxyInfo();
+        proxyInfo.setIp(html.substring(html.indexOf("<tddata-title=\"IP\">") + "<tddata-title=\"IP\">".length(), html.indexOf("</td><tddata-title=\"PORT\">")));
+        proxyInfo.setPort(html.substring(html.indexOf("<tddata-title=\"PORT\">") + "<tddata-title=\"PORT\">".length(), html.indexOf("</td><tddata-title=\"匿名度\">")));
+        return proxyInfo;
     }
 
     public static List<Share> sharesList(String urlStr) {
@@ -95,6 +109,60 @@ public class ApiClient {
         share.setUndp(Double.valueOf(shareParam[16]));
         share.setHolders(Double.valueOf(shareParam[22]));
         return share;
+    }
+
+    public static List<ShareDayRight> historyRight(String url, String code, String name, String year, String jidu) {
+        String result;
+        int sheep = 0;
+        while (true) {
+            result = HttpUtil.getIntance().get(url + code + ".phtml?year=" + year + "&jidu=" + jidu);
+            if (result == null) {
+                try {
+                    Thread.sleep(3000 * ++sheep);
+                    continue;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            result = result.replaceAll(" ", "").replaceAll("\n", "").replaceAll("\r", "").replaceAll("\t", "");
+            result = result.substring(result.indexOf("<tableid=\"FundHoldSharesTable\">"), result.lastIndexOf("<divclass=\"clearit\">"));
+            String singe;
+            List<ShareDayRight> shareSingeDayRights = new ArrayList<>();
+            while (result.contains("<atarget='_blank'")) {
+                singe = result.substring(result.indexOf("<atarget='_blank'"), result.indexOf("</tr>", result.indexOf("<atarget='_blank'") + 1));
+                result = result.substring(result.indexOf(singe) + singe.length() + 1);
+                shareSingeDayRights.add(parserShareDayRight(singe, code, name));
+            }
+            return shareSingeDayRights;
+        }
+    }
+
+    public static ShareDayRight parserShareDayRight(String html, String code, String name) {
+        String date = html.substring(html.indexOf("'>") + "'>".length(), html.indexOf("</a>"));
+        html = html.substring(html.indexOf("</div></td>") + "</div></td>".length());
+        String open = html.substring(html.indexOf("<divalign=\"center\">") + "<divalign=\"center\">".length(), html.indexOf("</div></td>"));
+        html = html.substring(html.indexOf("</div></td>") + "</div></td>".length());
+        String high = html.substring(html.indexOf("<divalign=\"center\">") + "<divalign=\"center\">".length(), html.indexOf("</div></td>"));
+        html = html.substring(html.indexOf("</div></td>") + "</div></td>".length());
+        String close = html.substring(html.indexOf("<divalign=\"center\">") + "<divalign=\"center\">".length(), html.indexOf("</div></td>"));
+        html = html.substring(html.indexOf("</div></td>") + "</div></td>".length());
+        String low = html.substring(html.indexOf("<divalign=\"center\">") + "<divalign=\"center\">".length(), html.indexOf("</div></td>"));
+        html = html.substring(html.indexOf("</div></td>") + "</div></td>".length());
+        String volume = html.substring(html.indexOf("<divalign=\"center\">") + "<divalign=\"center\">".length(), html.indexOf("</div></td>"));
+        html = html.substring(html.indexOf("</div></td>") + "</div></td>".length());
+        String totalPrice = html.substring(html.indexOf("<divalign=\"center\">") + "<divalign=\"center\">".length(), html.indexOf("</div></td>"));
+        html = html.substring(html.indexOf("</div></td>") + "</div></td>".length());
+        ShareDayRight shareDayRight = new ShareDayRight();
+        shareDayRight.setCode(code);
+        shareDayRight.setName(name);
+        shareDayRight.setDate(DateUtil.parse(date));
+        shareDayRight.setOpen(Double.valueOf(open));
+        shareDayRight.setHigh(Double.valueOf(high));
+        shareDayRight.setClose(Double.valueOf(close));
+        shareDayRight.setLow(Double.valueOf(low));
+        shareDayRight.setVolume(Double.valueOf(volume));
+        shareDayRight.setTotalPrice(Double.valueOf(totalPrice));
+        return shareDayRight;
     }
 
     public static List<ShareDay> history(String url, String code, String name) {

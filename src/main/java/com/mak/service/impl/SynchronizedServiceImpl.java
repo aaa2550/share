@@ -2,13 +2,14 @@ package com.mak.service.impl;
 
 import com.mak.api.ApiClient;
 import com.mak.common.Constant;
+import com.mak.dao.ProxyInfoDao;
 import com.mak.dao.ShareDao;
 import com.mak.dao.ShareDayDao;
 import com.mak.dao.ShareDayDetailDao;
 import com.mak.dto.Share;
 import com.mak.dto.ShareDay;
 import com.mak.dto.ShareDayDetail;
-import com.mak.http.HttpUtil;
+import com.mak.dto.ShareDayRight;
 import com.mak.service.SynchronizedService;
 import com.mak.util.DateUtil;
 import org.slf4j.Logger;
@@ -17,9 +18,10 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -39,9 +41,16 @@ public class SynchronizedServiceImpl implements SynchronizedService {
     @Resource
     private ShareDayDetailDao shareDayDetailDao;
 
+    @Resource
+    private ProxyInfoDao proxyInfoDao;
+
     @Override
     public void synchronizedProxys() {
-        Stream.iterate(1, i->i+1).limit(10).map(i->ApiClient.proxyList(Constant.API_PROXY + i)).collect(Collectors.toList());
+        Stream.iterate(1, i->i+1)
+                .limit(10)
+                .map(i->ApiClient.proxyList(Constant.API_PROXY + i))
+                .flatMap(Collection::stream)
+                .forEach(proxyInfoDao::insert);
     }
 
     @Override
@@ -105,6 +114,53 @@ public class SynchronizedServiceImpl implements SynchronizedService {
             e.printStackTrace();
         }
         //shareSingeDayDao.insert(shareSingeDays);
+    }
+
+    @Override
+    public void synchronizedHistoryRight() {
+        List<Share> shares = shareDao.findAll();
+        try {
+            int[] index = new int[1];
+            BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("C:\\Users\\lenovo\\Desktop\\synchronizedHistoryRight.sql")));
+            shares.forEach(s->{
+                System.out.println(++index[0]);
+                synchronizedHistoryRight(s.getCode(), s.getName(), bufferedWriter);
+            });
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void synchronizedHistoryRight(String code, String name, BufferedWriter bufferedWriter) {
+        List<ShareDayRight> shareSingeDayRights = new ArrayList<>();
+        shareSingeDayRights .addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name,"2017", "1"));
+        shareSingeDayRights .addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name,"2017", "2"));
+        shareSingeDayRights .addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name,"2017", "3"));
+        shareSingeDayRights .addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name,"2017", "4"));
+        shareSingeDayRights .addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name,"2018", "1"));
+        StringBuilder stringBuilder = new StringBuilder();
+        shareSingeDayRights.forEach(s->stringBuilder.append(shareDayRightToString(s)));
+        try {
+            bufferedWriter.write(stringBuilder.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String shareDayRightToString(ShareDayRight shareDayRight) {
+        return ("insert into share_singe_day_right(code,name,date,open,high,close," +
+                "low,volume,totalPrice) " +
+                "values(") +
+                shareDayRight.getCode() + "," +
+                shareDayRight.getName() + "," +
+                shareDayRight.getDate() + "," +
+                shareDayRight.getOpen() + "," +
+                shareDayRight.getHigh() + "," +
+                shareDayRight.getClose() + "," +
+                shareDayRight.getLow() + "," +
+                shareDayRight.getVolume() + "," +
+                shareDayRight.getTotalPrice() + ");\n";
     }
 
     private String shareSingeDayToString(ShareDay shareSingeDay) {

@@ -34,6 +34,8 @@ public class Constant {
 
     public final static String FILE_ROOT = PROPERTIES.getProperty("file.root");
 
+    public final static String API_HISTORY_RIGHT = PROPERTIES.getProperty("");
+
     public final static String FILE_PATH_SYNCHRONIZED_HISTORY = FILE_ROOT + "synchronizedHistory.sql";
 
     public final static String FILE_PATH_SYNCHRONIZED_DAY_DETAIL = FILE_ROOT + "synchronizedDayDetail.sql";
