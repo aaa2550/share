@@ -41,6 +41,7 @@ public class SynchronizedServiceTest {
 
     @Test
     public void synchronizedDayDetail() {
+        testSynchronizedProxys();
         synchronizedService.synchronizedDayDetail();
     }
 

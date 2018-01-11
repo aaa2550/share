@@ -116,6 +116,7 @@ public class HttpUtil {
             res = httpclient.execute(httpget, responseHandler);
         } catch (Exception e) {
             logger.error("url:{}",url, e);
+            throw new RuntimeException(e.getMessage() + "");
         }
         return res;
     }
@@ -133,8 +134,9 @@ public class HttpUtil {
             HttpHost proxy = new HttpHost(proxyInfo.getIp(), Integer.parseInt(proxyInfo.getPort()));
             RequestConfig config = RequestConfig.custom()
                 .setProxy(proxy)
-                .setSocketTimeout(3000)
-                .setConnectTimeout(3000)
+                .setSocketTimeout(5000)
+                .setConnectTimeout(5000)
+                .setConnectionRequestTimeout(5000)
                 .build();
             httpget.setConfig(config);
             ResponseHandler<String> responseHandler = new ResponseHandler<String>() {

@@ -24,9 +24,6 @@ import java.util.stream.Collectors;
 public class ApiClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ApiClient.class);
-    private static boolean useProxy;
-    private static long beforeTime = System.currentTimeMillis();
-    private static long timeout = 1000 * 60;
 
     public static List<ProxyInfo> proxyList(String url) {
         String html = HttpUtil.getIntance().get(url);
@@ -65,39 +62,17 @@ public class ApiClient {
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openConnection(ProxyPool.getProxyPool().randomProxy()).getInputStream(), "GBK"));
                 return bufferedReader.lines().parallel().filter(s->!s.startsWith("alert")).skip(1).map(l->toShareSingeDayDetail(l.split("\t"), code, name, date)).collect(Collectors.toList());
             }*/
-        int i = 1;
         while (true) {
             try {
-                String result;
-                if (!useProxy) {
-                    result = HttpUtil.getIntance().get(urlStr, "GBK");
-                } else {
-                    if (System.currentTimeMillis() - beforeTime >= timeout) {
-                        beforeTime = System.currentTimeMillis();
-                        useProxy = true;
-                    }
-                    result = HttpUtil.getIntance().proxyGet(urlStr, "GBK", ProxyPool.getProxyPool().randomProxy());
-                }
+                String result = HttpUtil.getIntance().get(urlStr, "GBK");
                 if (result == null || !result.startsWith("成交时间")) {
                     return Collections.emptyList();
                 }
                 return Arrays.stream(result.split("\n")).parallel().filter(s -> !s.startsWith("alert")).skip(1).map(l -> toShareSingeDayDetail(l.split("\t"), code, name, date)).collect(Collectors.toList());
             } catch (Throwable e) {
-                if (e.getMessage().contains("456")) {
-                    if (!useProxy) {
-                        beforeTime = System.currentTimeMillis();
-                        useProxy = true;
-                    }
-
-                }
                 e.printStackTrace();
                 System.out.println("shareDayDetail error.url=" + urlStr);
                 logger.error("shareDayDetail error.url=" + urlStr);
-                try {
-                    Thread.sleep(10000 * i++);
-                } catch (InterruptedException e1) {
-                    e1.printStackTrace();
-                }
             }
         }
     }
