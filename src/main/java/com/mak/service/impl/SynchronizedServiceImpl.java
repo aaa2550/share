@@ -6,22 +6,23 @@ import com.mak.dao.ProxyInfoDao;
 import com.mak.dao.ShareDao;
 import com.mak.dao.ShareDayDao;
 import com.mak.dao.ShareDayDetailDao;
-import com.mak.dto.Share;
-import com.mak.dto.ShareDay;
-import com.mak.dto.ShareDayDetail;
-import com.mak.dto.ShareDayRight;
+import com.mak.dto.*;
+import com.mak.http.ProxyPool;
 import com.mak.service.SynchronizedService;
 import com.mak.util.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.web.ProxyingHandlerMethodArgumentResolver;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.*;
+import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -46,11 +47,13 @@ public class SynchronizedServiceImpl implements SynchronizedService {
 
     @Override
     public void synchronizedProxys() {
+        proxyInfoDao.deleteAll();
         Stream.iterate(1, i->i+1)
-                .limit(10)
+                .limit(30)
                 .map(i->ApiClient.proxyList(Constant.API_PROXY + i))
                 .flatMap(Collection::stream)
                 .forEach(proxyInfoDao::insert);
+        ProxyPool.getProxyPool().reSetProxies(proxyInfoDao.findAll());
     }
 
     @Override
@@ -81,10 +84,10 @@ public class SynchronizedServiceImpl implements SynchronizedService {
         try {
             for (Share share : shares) {
                 //BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(Constant.FILE_PATH_SYNCHRONIZED_DAY_DETAIL)));
-                List<ShareDay> shareDays = shareSingeDayDao.findDate(share.getCode());
+                List<ShareDay> shareDays = shareSingeDayDao.findDate(share.getCode(), DateUtil.parse("2017-01-01"), DateUtil.parse("2018-01-11"));
                 shareDays.parallelStream().forEach(s -> {
-                    System.out.println("execute share=" + share.getCode() + ",date=" + DateUtil.format(s.getDate()));
                     synchronizedDayDetail(share.getCode(), share.getName(), s.getDate(), null);
+                    System.out.println("execute share=" + share.getCode() + ",date=" + DateUtil.format(s.getDate()));
                 });
                 i++;
             }

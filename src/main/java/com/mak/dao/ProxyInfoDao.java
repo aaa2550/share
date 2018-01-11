@@ -20,4 +20,7 @@ public interface ProxyInfoDao {
 
     @SQL("select * from #table")
     List<ProxyInfo> findAll();
+
+    @SQL("delete from #table")
+    int deleteAll();
 }

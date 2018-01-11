@@ -1,17 +1,27 @@
 package com.mak.http;
 
+import com.mak.dto.ProxyInfo;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.auth.AUTH;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicAuthCache;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -25,12 +35,14 @@ import org.springframework.util.FileCopyUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.*;
+import java.net.Proxy;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * http工具类
@@ -56,9 +68,9 @@ public class HttpUtil {
 	private HttpUtil() {
 		PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
 		// 将最大连接数增加到300
-		cm.setMaxTotal(300);
+		cm.setMaxTotal(1000);
 		// 将每个路由基础的连接增加到100
-		cm.setDefaultMaxPerRoute(100);
+		cm.setDefaultMaxPerRoute(300);
 		// 链接超时setConnectTimeout ，读取超时setSocketTimeout
 		RequestConfig defaultRequestConfig = null;
         defaultRequestConfig = RequestConfig.custom().setConnectTimeout(5000).setSocketTimeout(5000).build();
@@ -104,6 +116,44 @@ public class HttpUtil {
             res = httpclient.execute(httpget, responseHandler);
         } catch (Exception e) {
             logger.error("url:{}",url, e);
+        }
+        return res;
+    }
+
+    /**
+     * @param url
+     * @param code
+     * @return
+     */
+    public String proxyGet(String url, final String code, ProxyInfo proxyInfo) throws TimeoutException {
+        String res = null;
+
+        try {
+            HttpGet httpget = new HttpGet(url);
+            HttpHost proxy = new HttpHost(proxyInfo.getIp(), Integer.parseInt(proxyInfo.getPort()));
+            RequestConfig config = RequestConfig.custom()
+                .setProxy(proxy)
+                .setSocketTimeout(3000)
+                .setConnectTimeout(3000)
+                .build();
+            httpget.setConfig(config);
+            ResponseHandler<String> responseHandler = new ResponseHandler<String>() {
+                @Override
+                public String handleResponse(final HttpResponse response) throws ClientProtocolException, IOException {
+                    int status = response.getStatusLine().getStatusCode();
+                    if (status >= 200 && status < 300) {
+                        HttpEntity entity = response.getEntity();
+                        return entity != null ? EntityUtils.toString(entity, code) : null;
+                    } else {
+                        throw new ClientProtocolException("Unexpected response status: " + status);
+                    }
+                }
+
+            };
+            res = httpclient.execute(httpget, responseHandler);
+        } catch (Exception e) {
+            //logger.error("url:{}" + url, e);
+            throw new TimeoutException(e.getMessage() + "");
         }
         return res;
     }

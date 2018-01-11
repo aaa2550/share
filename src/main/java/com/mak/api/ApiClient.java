@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.mak.dto.*;
 import com.mak.http.HttpUtil;
+import com.mak.http.ProxyPool;
 import com.mak.util.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,8 +12,10 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.Proxy;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -21,18 +24,18 @@ import java.util.stream.Collectors;
 public class ApiClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ApiClient.class);
+    private static boolean useProxy;
+    private static long beforeTime = System.currentTimeMillis();
+    private static long timeout = 1000 * 60;
 
     public static List<ProxyInfo> proxyList(String url) {
         String html = HttpUtil.getIntance().get(url);
-        System.out.println(html);
-
-
-        html = html.replaceAll("\r", "").replaceAll("\n","").replaceAll("\t","").replaceAll(" ","");
-        html = html.substring(html.indexOf("<tbody>") + "<tbody>".length(), html.lastIndexOf("<tdcolspan=\"7\">"));
+        html = html.replaceAll("\r", "").replaceAll("\n", "").replaceAll("\t", "").replaceAll(" ", "");
+        html = html.substring(html.indexOf("<tbody>") + "<tbody>".length(), html.lastIndexOf("<tr><tdcolspan=\"7\">"));
         List<ProxyInfo> proxyInfos = new ArrayList<>();
         while (html.contains("<tr>")) {
             String singeHtml = html.substring(html.indexOf("<tr>") + "<tr>".length(), html.indexOf("</tr>") + "</tr>".length());
-            html = html.substring(html.indexOf(singeHtml), singeHtml.length());
+            html = html.substring(html.indexOf(singeHtml) + singeHtml.length());
             proxyInfos.add(parser(singeHtml));
         }
         return proxyInfos;
@@ -49,7 +52,7 @@ public class ApiClient {
         try {
             URL url = new URL(urlStr);
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openStream(), "GBK"));
-            return bufferedReader.lines().skip(1).map(l->toShare(l.split(","))).collect(Collectors.toList());
+            return bufferedReader.lines().skip(1).map(l -> toShare(l.split(","))).collect(Collectors.toList());
         } catch (IOException e) {
             e.printStackTrace();
             return Collections.emptyList();
@@ -57,15 +60,45 @@ public class ApiClient {
     }
 
     public static List<ShareDayDetail> shareDayDetail(String urlStr, String code, String name, Date date) {
-        try {
-            while (true) {
+            /*while (true) {
                 URL url = new URL(urlStr);
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openStream(), "GBK"));
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openConnection(ProxyPool.getProxyPool().randomProxy()).getInputStream(), "GBK"));
                 return bufferedReader.lines().parallel().filter(s->!s.startsWith("alert")).skip(1).map(l->toShareSingeDayDetail(l.split("\t"), code, name, date)).collect(Collectors.toList());
+            }*/
+        int i = 1;
+        while (true) {
+            try {
+                String result;
+                if (!useProxy) {
+                    result = HttpUtil.getIntance().get(urlStr, "GBK");
+                } else {
+                    if (System.currentTimeMillis() - beforeTime >= timeout) {
+                        beforeTime = System.currentTimeMillis();
+                        useProxy = true;
+                    }
+                    result = HttpUtil.getIntance().proxyGet(urlStr, "GBK", ProxyPool.getProxyPool().randomProxy());
+                }
+                if (result == null || !result.startsWith("成交时间")) {
+                    return Collections.emptyList();
+                }
+                return Arrays.stream(result.split("\n")).parallel().filter(s -> !s.startsWith("alert")).skip(1).map(l -> toShareSingeDayDetail(l.split("\t"), code, name, date)).collect(Collectors.toList());
+            } catch (Throwable e) {
+                if (e.getMessage().contains("456")) {
+                    if (!useProxy) {
+                        beforeTime = System.currentTimeMillis();
+                        useProxy = true;
+                    }
+
+                }
+                e.printStackTrace();
+                System.out.println("shareDayDetail error.url=" + urlStr);
+                logger.error("shareDayDetail error.url=" + urlStr);
+                try {
+                    Thread.sleep(10000 * i++);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return Collections.emptyList();
         }
     }
 
@@ -172,7 +205,7 @@ public class ApiClient {
             List<ShareDay> shareSingeDays = new ArrayList<>();
             JSONArray jsonArray = map.get("record");
             for (int i = 0; i < jsonArray.size(); i++) {
-                JSONArray jsonArray1 = (JSONArray)jsonArray.get(i);
+                JSONArray jsonArray1 = (JSONArray) jsonArray.get(i);
                 ShareDay shareSingeDay = new ShareDay();
                 shareSingeDay.setCode(code);
                 shareSingeDay.setName(name);

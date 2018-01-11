@@ -27,8 +27,8 @@ public interface ShareDayDao {
     @SQL("select * from #table where code=:1")
     List<ShareDay> find(String code);
 
-    @SQL("select date from #table where code=:1")
-    List<ShareDay> findDate(String code);
+    @SQL("select date from #table where code=:1 and date>=:2 and date<=:3")
+    List<ShareDay> findDate(String code, Date start, Date end);
 
     @SQL("select * from #table where code=:1 and date=:2")
     ShareDay find(String code, Date date);

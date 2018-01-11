@@ -1,6 +1,8 @@
 package com.mak;
 
 import com.mak.common.JdbcSql;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 import lombok.Setter;
 import org.jfaster.mango.datasource.DriverManagerDataSource;
@@ -34,9 +36,9 @@ public class SharesApplication {
 	}
 
 	@Bean
-	public JdbcSql getJdbcSql(DriverManagerDataSource driverManagerDataSource) {
+	public JdbcSql getJdbcSql(HikariDataSource hikariDataSource) {
 		try {
-			Connection connection = driverManagerDataSource.getConnection();
+			Connection connection = hikariDataSource.getConnection();
 			return new JdbcSql(connection);
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -46,17 +48,33 @@ public class SharesApplication {
 	}
 
 	@Bean
-	public DriverManagerDataSource getDriverManagerDataSource(
+	public HikariDataSource getHikariDataSource(
+			@Value("${mango.maximumPoolSize}") Integer maximumPoolSize,
+			@Value("${mango.MinimumIdle}") Integer minimumIdle,
+			@Value("${mango.connectionTestQuery}") String connectionTestQuery,
+			@Value("${mango.maxLifetime}") Long maxLifetime,
+			@Value("${mango.idleTimeout}") Long idleTimeout,
 			@Value("${mango.driverClassName}") String driverClassName,
 			@Value("${mango.url}") String url,
 			@Value("${mango.username}") String username,
 			@Value("${mango.password}") String password) {
-		return new DriverManagerDataSource(driverClassName, url, username, password);
+		HikariConfig hikariConfig = new HikariConfig();
+		hikariConfig.setAutoCommit(true);
+		hikariConfig.setMaximumPoolSize(maximumPoolSize);
+		hikariConfig.setMinimumIdle(minimumIdle);
+		hikariConfig.setConnectionTestQuery(connectionTestQuery);
+		hikariConfig.setMaxLifetime(maxLifetime);
+		hikariConfig.setIdleTimeout(idleTimeout);
+		hikariConfig.setDriverClassName(driverClassName);
+		hikariConfig.setJdbcUrl(url);
+		hikariConfig.setUsername(username);
+		hikariConfig.setPassword(password);
+		return new HikariDataSource(hikariConfig);
 	}
 
 	@Bean
-	public Mango getMango(DriverManagerDataSource driverManagerDataSource) {
-		Mango mango = Mango.newInstance(driverManagerDataSource);
+	public Mango getMango(HikariDataSource hikariDataSource) {
+		Mango mango = Mango.newInstance(hikariDataSource);
 		mango.addInterceptor(new MySQLPageInterceptor());
 		return mango;
 	}
