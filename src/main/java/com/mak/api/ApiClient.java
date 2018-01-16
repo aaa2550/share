@@ -16,6 +16,7 @@ import java.net.Proxy;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 
 /**
@@ -24,6 +25,9 @@ import java.util.stream.Collectors;
 public class ApiClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ApiClient.class);
+    private static int timeout = 1;
+    private static volatile boolean useProxy;
+    private static volatile boolean lock;
 
     public static List<ProxyInfo> proxyList(String url) {
         String html = HttpUtil.getIntance().get(url);
@@ -62,15 +66,32 @@ public class ApiClient {
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openConnection(ProxyPool.getProxyPool().randomProxy()).getInputStream(), "GBK"));
                 return bufferedReader.lines().parallel().filter(s->!s.startsWith("alert")).skip(1).map(l->toShareSingeDayDetail(l.split("\t"), code, name, date)).collect(Collectors.toList());
             }*/
+        int p = 0;
+        if (lock) {
+            LockSupport.parkNanos(5000 * 60);
+        }
         while (true) {
             try {
-                String result = HttpUtil.getIntance().get(urlStr, "GBK");
+                String result;
+                if (useProxy) {
+                    p++;
+                    result = HttpUtil.getIntance().proxyGet(urlStr, "GBK", new ProxyInfo("123.186.228.144", "2341"));
+                } else {
+                    p++;
+                    result = HttpUtil.getIntance().get(urlStr, "GBK");
+                }
                 if (result == null || !result.startsWith("成交时间")) {
                     return Collections.emptyList();
                 }
                 return Arrays.stream(result.split("\n")).parallel().filter(s -> !s.startsWith("alert")).skip(1).map(l -> toShareSingeDayDetail(l.split("\t"), code, name, date)).collect(Collectors.toList());
             } catch (Throwable e) {
                 e.printStackTrace();
+                if (e.getMessage().contains("456")) {
+                    useProxy = !useProxy;
+                    if (p >= 2) {
+                        lock = true;
+                    }
+                }
                 System.out.println("shareDayDetail error.url=" + urlStr);
                 logger.error("shareDayDetail error.url=" + urlStr);
             }
