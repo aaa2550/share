@@ -7,6 +7,7 @@ import java.net.Proxy;
 import java.util.List;
 import java.util.Random;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by yanghailong on 2018/1/9.
@@ -18,6 +19,9 @@ public class ProxyPool {
     private int size;
     private Random random = new Random(System.currentTimeMillis());
     private volatile boolean flag = true;
+    private int currentIndex;
+    private ProxyInfo currentProxyInfo;
+    private volatile boolean nextFlag = true;
 
     private ProxyPool(){
     }
@@ -29,9 +33,30 @@ public class ProxyPool {
                 proxies.clear();
                 proxies.addAll(proxyInfos);
                 size = proxyInfos.size();
+                currentIndex = 0;
                 flag = true;
+                currentProxyInfo = next();
             }
         }
+    }
+
+    public ProxyInfo getCurrentProxyInfo() {
+        return currentProxyInfo;
+    }
+
+    public ProxyInfo next() {
+        if (nextFlag) {
+            nextFlag = false;
+            synchronized (this) {
+                if (currentIndex == proxies.size()) {
+                    currentIndex = 0;
+                }
+                currentProxyInfo = proxies.get(currentIndex++);
+            }
+            nextFlag = true;
+        }
+
+        return currentProxyInfo;
     }
 
     public static ProxyPool getProxyPool() {

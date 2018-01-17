@@ -18,10 +18,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.io.*;
 import java.net.Proxy;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -47,10 +44,10 @@ public class SynchronizedServiceImpl implements SynchronizedService {
 
     @Override
     public void synchronizedProxys() {
-        proxyInfoDao.deleteAll();
+        //proxyInfoDao.deleteAll();
         Stream.iterate(1, i->i+1)
                 .limit(30)
-                .map(i->ApiClient.proxyList(Constant.API_PROXY + i))
+                .map(i->ApiClient.proxyListAli(Constant.API_PROXY + Base64.getUrlEncoder().encodeToString("6Zi/6YeM5LqR".getBytes())  + "&page=" + i))
                 .flatMap(Collection::stream)
                 .forEach(proxyInfoDao::insert);
         ProxyPool.getProxyPool().reSetProxies(proxyInfoDao.findAll());

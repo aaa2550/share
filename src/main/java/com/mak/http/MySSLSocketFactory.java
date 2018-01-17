@@ -79,11 +79,11 @@ public class MySSLSocketFactory extends SSLSocketFactory {
             SchemeRegistry schemeRegistry = new SchemeRegistry();
             schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
             schemeRegistry.register(new Scheme("https", sslSocketFactory, 443));
-  
+
             ClientConnectionManager clientConnectionManager = new ThreadSafeClientConnManager(httpParams, schemeRegistry);
             return new DefaultHttpClient(clientConnectionManager, httpParams);
-        } catch (Exception e) {  
-            return new DefaultHttpClient();  
-        }  
+        } catch (Exception e) {
+            return new DefaultHttpClient();
+        }
     }  
 }  

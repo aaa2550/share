@@ -1,7 +1,10 @@
 package com.mak.service;
 
 import com.mak.SharesApplication;
+import com.mak.dao.ProxyInfoDao;
 import com.mak.dao.ShareDayDetailDao;
+import com.mak.http.ProxyPool;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -9,6 +12,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
 import javax.annotation.Resource;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.security.*;
+import java.security.cert.CertificateException;
 
 /**
  * Created by lenovo on 2018/1/6.
@@ -23,6 +33,10 @@ public class SynchronizedServiceTest {
 
     @Resource
     private ShareDayDetailDao shareSingeDayDetailDao;
+
+    @Resource
+
+    private ProxyInfoDao proxyInfoDao;
 
     @Test
     public void testSynchronizedProxys() {
@@ -41,7 +55,7 @@ public class SynchronizedServiceTest {
 
     @Test
     public void synchronizedDayDetail() {
-        testSynchronizedProxys();
+        ProxyPool.getProxyPool().reSetProxies(proxyInfoDao.findAll());
         synchronizedService.synchronizedDayDetail();
     }
 

@@ -42,6 +42,19 @@ public class ApiClient {
         return proxyInfos;
     }
 
+    public static List<ProxyInfo> proxyListAli(String url) {
+        String html = HttpUtil.getIntance().get(url);
+        html = html.replaceAll("\r", "").replaceAll("\n", "").replaceAll("\t", "").replaceAll(" ", "");
+        html = html.substring(html.indexOf("<tbody>") + "<tbody>".length(), html.lastIndexOf("<tr><tdcolspan=\"7\">"));
+        List<ProxyInfo> proxyInfos = new ArrayList<>();
+        while (html.contains("<tr>")) {
+            String singeHtml = html.substring(html.indexOf("<tr>") + "<tr>".length(), html.indexOf("</tr>") + "</tr>".length());
+            html = html.substring(html.indexOf(singeHtml) + singeHtml.length());
+            proxyInfos.add(parser(singeHtml));
+        }
+        return proxyInfos;
+    }
+
     private static ProxyInfo parser(String html) {
         ProxyInfo proxyInfo = new ProxyInfo();
         proxyInfo.setIp(html.substring(html.indexOf("<tddata-title=\"IP\">") + "<tddata-title=\"IP\">".length(), html.indexOf("</td><tddata-title=\"PORT\">")));
@@ -66,31 +79,23 @@ public class ApiClient {
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openConnection(ProxyPool.getProxyPool().randomProxy()).getInputStream(), "GBK"));
                 return bufferedReader.lines().parallel().filter(s->!s.startsWith("alert")).skip(1).map(l->toShareSingeDayDetail(l.split("\t"), code, name, date)).collect(Collectors.toList());
             }*/
-        int p = 0;
-        if (lock) {
-            LockSupport.parkNanos(5000 * 60);
-        }
+        ProxyInfo proxyInfo = null;
         while (true) {
             try {
-                String result;
-                if (useProxy) {
-                    p++;
-                    result = HttpUtil.getIntance().proxyGet(urlStr, "GBK", new ProxyInfo("123.186.228.144", "2341"));
-                } else {
-                    p++;
-                    result = HttpUtil.getIntance().get(urlStr, "GBK");
-                }
+                proxyInfo = ProxyPool.getProxyPool().getCurrentProxyInfo();
+                String result = HttpUtil.getIntance().proxyGet(urlStr, "GBK", proxyInfo);
                 if (result == null || !result.startsWith("成交时间")) {
                     return Collections.emptyList();
                 }
+                System.out.println("成功执行代理-" + proxyInfo);
                 return Arrays.stream(result.split("\n")).parallel().filter(s -> !s.startsWith("alert")).skip(1).map(l -> toShareSingeDayDetail(l.split("\t"), code, name, date)).collect(Collectors.toList());
             } catch (Throwable e) {
                 e.printStackTrace();
+                System.out.println("失败代理-" + proxyInfo);
                 if (e.getMessage().contains("456")) {
-                    useProxy = !useProxy;
-                    if (p >= 2) {
-                        lock = true;
-                    }
+                    ProxyPool.getProxyPool().next();
+                } else if (e.getMessage().contains("Read timed out")) {
+                    ProxyPool.getProxyPool().next();
                 }
                 System.out.println("shareDayDetail error.url=" + urlStr);
                 logger.error("shareDayDetail error.url=" + urlStr);

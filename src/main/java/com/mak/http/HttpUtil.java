@@ -138,6 +138,7 @@ public class HttpUtil {
                 .setConnectTimeout(5000)
                 .setConnectionRequestTimeout(5000)
                 .build();
+            httpget.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:50.0) Gecko/20100101 Firefox/50.0");
             httpget.setConfig(config);
             ResponseHandler<String> responseHandler = new ResponseHandler<String>() {
                 @Override
