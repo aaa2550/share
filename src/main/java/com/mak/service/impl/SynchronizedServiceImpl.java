@@ -9,6 +9,7 @@ import com.mak.http.ProxyPool;
 import com.mak.service.SynchronizedService;
 import com.mak.util.DateUtil;
 import com.mak.util.NumberUtil;
+import jdk.internal.util.xml.impl.Input;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,9 +55,9 @@ public class SynchronizedServiceImpl implements SynchronizedService {
     @Override
     public void synchronizedProxys() {
         //proxyInfoDao.deleteAll();
-        Stream.iterate(1, i->i+1)
+        Stream.iterate(1, i -> i + 1)
                 .limit(30)
-                .map(i->ApiClient.proxyListAli(Constant.API_PROXY + Base64.getUrlEncoder().encodeToString("6Zi/6YeM5LqR".getBytes())  + "&page=" + i))
+                .map(i -> ApiClient.proxyListAli(Constant.API_PROXY + Base64.getUrlEncoder().encodeToString("6Zi/6YeM5LqR".getBytes()) + "&page=" + i))
                 .flatMap(Collection::stream)
                 .forEach(proxyInfoDao::insert);
         ProxyPool.getProxyPool().reSetProxies(proxyInfoDao.findAll());
@@ -114,13 +115,15 @@ public class SynchronizedServiceImpl implements SynchronizedService {
         while (currentDay.before(today)) {
             currentDays = shareDayDao.find(currentDay);
             currentDays.parallelStream()
-                    .peek(d->yesterdayHashMap.put(d.getCode(), d.getClose()))
-                    .forEach(d->{
-                        try {
-                            String fileName = d.getCode().startsWith("6") ? "SH#" + d.getCode() + ".txt" : "SZ#" + d.getCode() + ".txt";
-                            Files.lines(Paths.get(Constant.FILE_PATH_RXT, fileName))
+                    .peek(d -> yesterdayHashMap.put(d.getCode(), d.getClose()))
+                    .forEach(d -> {
+                        String fileName = d.getCode().startsWith("6") ? "SH#" + d.getCode() + ".txt" : "SZ#" + d.getCode() + ".txt";
+                        try (FileInputStream fileInputStream = new FileInputStream(Constant.FILE_PATH_RXT + fileName);
+                             InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
+                             BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+                            bufferedReader.lines()
                                     .skip(2)
-                                    .map(l->toShareDayRxtDetail(yesterdayHashMap.get(d.getCode()), d.getOpen(), d.getCode(), d.getName(), l))
+                                    .map(l -> toShareDayRxtDetail(yesterdayHashMap.get(d.getCode()), d.getOpen(), d.getCode(), d.getName(), l))
                                     .forEach(shareDayRxtDetailDao::insert);
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -133,7 +136,7 @@ public class SynchronizedServiceImpl implements SynchronizedService {
     @Override
     public void synchronizedDayDetail(String code, String name, Date date, BufferedWriter bufferedWriter) {
         String codeParam = code.startsWith("6") ? "sh" + code : "sz" + code;
-        List<ShareDayDetail> shareDayDetails = ApiClient.shareDayDetail(Constant.API_SHARES_DAY_DETAIL + "?date="+DateUtil.format(date)+"&symbol=" + codeParam, code, name, date);
+        List<ShareDayDetail> shareDayDetails = ApiClient.shareDayDetail(Constant.API_SHARES_DAY_DETAIL + "?date=" + DateUtil.format(date) + "&symbol=" + codeParam, code, name, date);
         shareDayDetailDao.insert(shareDayDetails);
     }
 
@@ -157,7 +160,7 @@ public class SynchronizedServiceImpl implements SynchronizedService {
         try {
             int[] index = new int[1];
             BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("C:\\Users\\lenovo\\Desktop\\synchronizedHistoryRight.sql")));
-            shares.forEach(s->{
+            shares.forEach(s -> {
                 System.out.println(++index[0]);
                 synchronizedHistoryRight(s.getCode(), s.getName(), bufferedWriter);
             });
@@ -169,13 +172,13 @@ public class SynchronizedServiceImpl implements SynchronizedService {
     @Override
     public void synchronizedHistoryRight(String code, String name, BufferedWriter bufferedWriter) {
         List<ShareDayRight> shareSingeDayRights = new ArrayList<>();
-        shareSingeDayRights .addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name,"2017", "1"));
-        shareSingeDayRights .addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name,"2017", "2"));
-        shareSingeDayRights .addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name,"2017", "3"));
-        shareSingeDayRights .addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name,"2017", "4"));
-        shareSingeDayRights .addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name,"2018", "1"));
+        shareSingeDayRights.addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name, "2017", "1"));
+        shareSingeDayRights.addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name, "2017", "2"));
+        shareSingeDayRights.addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name, "2017", "3"));
+        shareSingeDayRights.addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name, "2017", "4"));
+        shareSingeDayRights.addAll(ApiClient.historyRight(Constant.API_HISTORY_RIGHT, code, name, "2018", "1"));
         StringBuilder stringBuilder = new StringBuilder();
-        shareSingeDayRights.forEach(s->stringBuilder.append(shareDayRightToString(s)));
+        shareSingeDayRights.forEach(s -> stringBuilder.append(shareDayRightToString(s)));
         try {
             bufferedWriter.write(stringBuilder.toString());
         } catch (IOException e) {
@@ -199,7 +202,7 @@ public class SynchronizedServiceImpl implements SynchronizedService {
     }
 
     private ShareDayRxtDetail toShareDayRxtDetail(Double afterDayClose, Double todayOpen, String code, String name, String str) {
-        String[] params = str.split("\\r");
+        String[] params = str.split("\\t");
         ShareDayRxtDetail shareDayRxtDetail = new ShareDayRxtDetail();
         shareDayRxtDetail.setCode(code);
         shareDayRxtDetail.setName(name);

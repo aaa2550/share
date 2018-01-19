@@ -32,6 +32,21 @@ public class JdbcSql {
             "  KEY `index_code_date` USING BTREE (`code`,`date`)\n" +
             ") ENGINE=MyISAM DEFAULT CHARSET=utf8;";
 
+    public final static String SHARE_SINGE_DAY_RXT_DETAIL_CREATE_SQL = "CREATE TABLE `#table` (\n" +
+            "  `id` int(11) primary key not null auto_increment,\n" +
+            "  `date` TIMESTAMP NOT NULL COMMENT '股票日期',\n" +
+            "  `code` varchar(20) NOT NULL COMMENT '股票代码',\n" +
+            "  `name` varchar(20) NOT NULL COMMENT '股票中文名',\n" +
+            "  `tradeTime` TIMESTAMP NOT NULL COMMENT '成交时间',\n" +
+            "  `price` double(11,2) NOT NULL COMMENT '成交价',\n" +
+            "  `p1Change` double(11,2) NOT NULL COMMENT '涨跌幅',\n" +
+            "  `priceChange` double(11,2) NOT NULL COMMENT '价格变动',\n" +
+            "  `num` int(11) NOT NULL COMMENT '成交量(手)',\n" +
+            "  `money` double(11,2) NOT NULL COMMENT '成交额(元)',\n" +
+            "  KEY `index_code` USING BTREE (`code`),\n" +
+            "  KEY `index_date` USING BTREE (`date`)\n" +
+            ") ENGINE=MyISAM DEFAULT CHARSET=utf8;";
+
     private Connection connection;
     final static ConcurrentSkipListSet<String> tables = new ConcurrentSkipListSet<>();
 

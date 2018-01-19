@@ -87,7 +87,7 @@ CREATE TABLE `share_rxt_singe_day_detail` (
   `p1Change` double(11,2) NOT NULL COMMENT '涨跌幅',
   `priceChange` double(11,2) NOT NULL COMMENT '价格变动',
   `num` int(11) NOT NULL COMMENT '成交量(手)',
-  `money` double(11,2) NOT NULL COMMENT '成交额(元)'
+  `money` double(11,2) NOT NULL COMMENT '成交额(元)',
   KEY `index_code` USING BTREE (`code`),
   KEY `index_date` USING BTREE (`date`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;

@@ -11,9 +11,9 @@ import java.util.Date;
 public class TableShardingStrategyDayRxtDetailByCode implements TableShardingStrategy<Date> {
     @Override
     public String getTargetTable(String table, Date shardingParameter) {
-        String tableName = table + "_" + DateUtil.format(shardingParameter);
+        String tableName = table + "_" + DateUtil.format(shardingParameter, "yyyyMMdd");
         if (!JdbcSql.tables.contains(tableName)) {
-            JdbcSql.getSingeJdbcSql().execute(JdbcSql.SHARE_SINGE_DAY_DETAIL_CREATE_SQL.replace("#table", tableName));
+            JdbcSql.getSingeJdbcSql().execute(JdbcSql.SHARE_SINGE_DAY_RXT_DETAIL_CREATE_SQL.replace("#table", tableName));
             JdbcSql.tables.add(tableName);
         }
         return tableName;
