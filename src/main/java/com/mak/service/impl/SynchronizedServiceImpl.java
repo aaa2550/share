@@ -1,15 +1,15 @@
 package com.mak.service.impl;
 
+import com.alibaba.fastjson.util.IOUtils;
 import com.mak.api.ApiClient;
 import com.mak.common.Constant;
-import com.mak.dao.ProxyInfoDao;
-import com.mak.dao.ShareDao;
-import com.mak.dao.ShareDayDao;
-import com.mak.dao.ShareDayDetailDao;
+import com.mak.dao.*;
 import com.mak.dto.*;
 import com.mak.http.ProxyPool;
 import com.mak.service.SynchronizedService;
 import com.mak.util.DateUtil;
+import com.mak.util.NumberUtil;
+import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.web.ProxyingHandlerMethodArgumentResolver;
@@ -18,7 +18,10 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.io.*;
 import java.net.Proxy;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,7 +43,13 @@ public class SynchronizedServiceImpl implements SynchronizedService {
     private ShareDayDetailDao shareDayDetailDao;
 
     @Resource
+    private ShareDayRxtDetailDao shareDayRxtDetailDao;
+
+    @Resource
     private ProxyInfoDao proxyInfoDao;
+
+    @Resource
+    private ShareDayDao shareDayDao;
 
     @Override
     public void synchronizedProxys() {
@@ -92,6 +101,32 @@ public class SynchronizedServiceImpl implements SynchronizedService {
             e.printStackTrace();
             System.out.println("synchronizedDayDetail error.i=" + i);
             logger.error("synchronizedDayDetail error.i=" + i, e);
+        }
+    }
+
+    @Override
+    public void synchronizedDayRxtDetail() {
+        Date currentDay = DateUtil.parse("2017-10-01");
+        Date today = new Date();
+        List<ShareDay> currentDays;
+        ConcurrentHashMap<String, Double> yesterdayHashMap = new ConcurrentHashMap<>();
+
+        while (currentDay.before(today)) {
+            currentDays = shareDayDao.find(currentDay);
+            currentDays.parallelStream()
+                    .peek(d->yesterdayHashMap.put(d.getCode(), d.getClose()))
+                    .forEach(d->{
+                        try {
+                            String fileName = d.getCode().startsWith("6") ? "SH#" + d.getCode() + ".txt" : "SZ#" + d.getCode() + ".txt";
+                            Files.lines(Paths.get(Constant.FILE_PATH_RXT, fileName))
+                                    .skip(2)
+                                    .map(l->toShareDayRxtDetail(yesterdayHashMap.get(d.getCode()), d.getOpen(), d.getCode(), d.getName(), l))
+                                    .forEach(shareDayRxtDetailDao::insert);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+            currentDay = DateUtil.nextDay(currentDay);
         }
     }
 
@@ -161,6 +196,21 @@ public class SynchronizedServiceImpl implements SynchronizedService {
                 shareDayRight.getLow() + "," +
                 shareDayRight.getVolume() + "," +
                 shareDayRight.getTotalPrice() + ");\n";
+    }
+
+    private ShareDayRxtDetail toShareDayRxtDetail(Double afterDayClose, Double todayOpen, String code, String name, String str) {
+        String[] params = str.split("\\r");
+        ShareDayRxtDetail shareDayRxtDetail = new ShareDayRxtDetail();
+        shareDayRxtDetail.setCode(code);
+        shareDayRxtDetail.setName(name);
+        shareDayRxtDetail.setDate(DateUtil.parse(params[0]));
+        shareDayRxtDetail.setTradeTime(DateUtil.parse(params[1], "HHmm"));
+        shareDayRxtDetail.setPrice(Double.valueOf(params[5]));
+        shareDayRxtDetail.setPriceChange(afterDayClose == null ? null : afterDayClose - shareDayRxtDetail.getPrice());
+        shareDayRxtDetail.setP1Change(afterDayClose == null ? null : NumberUtil.percent(afterDayClose, shareDayRxtDetail.getPrice()));
+        shareDayRxtDetail.setNum(Integer.valueOf(params[6]));
+        shareDayRxtDetail.setMoney(Double.valueOf(params[7]));
+        return shareDayRxtDetail;
     }
 
     private String shareSingeDayToString(ShareDay shareSingeDay) {

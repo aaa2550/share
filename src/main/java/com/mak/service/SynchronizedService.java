@@ -16,6 +16,8 @@ public interface SynchronizedService {
 
     void synchronizedDayDetail();
 
+    void synchronizedDayRxtDetail();
+
     void synchronizedHistoryRight();
 
     void synchronizedHistoryRight(String code, String name, BufferedWriter bufferedWriter);

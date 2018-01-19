@@ -59,4 +59,10 @@ public class SynchronizedServiceTest {
         synchronizedService.synchronizedDayDetail();
     }
 
+    @Test
+    public void synchronizedDayRxtDetail() {
+        ProxyPool.getProxyPool().reSetProxies(proxyInfoDao.findAll());
+        synchronizedService.synchronizedDayRxtDetail();
+    }
+
 }

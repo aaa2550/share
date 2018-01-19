@@ -76,20 +76,20 @@ CREATE TABLE `share_singe_day_detail` (
   KEY `index_code_date` USING BTREE (`code`,`date`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `share_singe_day_detail`;
-CREATE TABLE `share_singe_day_detail` (
+DROP TABLE IF EXISTS `share_rxt_singe_day_detail`;
+CREATE TABLE `share_rxt_singe_day_detail` (
   `id` int(11) primary key not null auto_increment,
   `date` TIMESTAMP NOT NULL COMMENT '股票日期',
   `code` varchar(20) NOT NULL COMMENT '股票代码',
   `name` varchar(20) NOT NULL COMMENT '股票中文名',
   `tradeTime` TIMESTAMP NOT NULL COMMENT '成交时间',
   `price` double(11,2) NOT NULL COMMENT '成交价',
+  `p1Change` double(11,2) NOT NULL COMMENT '涨跌幅',
   `priceChange` double(11,2) NOT NULL COMMENT '价格变动',
   `num` int(11) NOT NULL COMMENT '成交量(手)',
-  `money` double(11,2) NOT NULL COMMENT '成交额(元)',
-  `nature` varchar(20) NOT NULL COMMENT '性质',
+  `money` double(11,2) NOT NULL COMMENT '成交额(元)'
   KEY `index_code` USING BTREE (`code`),
-  KEY `index_code_date` USING BTREE (`code`,`date`)
+  KEY `index_date` USING BTREE (`date`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 DROP TABLE IF EXISTS `proxy_info`;

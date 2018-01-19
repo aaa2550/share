@@ -40,4 +40,6 @@ public class Constant {
 
     public final static String FILE_PATH_SYNCHRONIZED_DAY_DETAIL = FILE_ROOT + "synchronizedDayDetail.sql";
 
+    public final static String FILE_PATH_RXT = FILE_ROOT + "rxt\\";
+
 }
