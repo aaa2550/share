@@ -121,10 +121,12 @@ public class SynchronizedServiceImpl implements SynchronizedService {
                         try (FileInputStream fileInputStream = new FileInputStream(Constant.FILE_PATH_RXT + fileName);
                              InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream);
                              BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
-                            bufferedReader.lines()
+                             List<ShareDayRxtDetail> shareDayRxtDetails = bufferedReader.lines().parallel()
                                     .skip(2)
                                     .map(l -> toShareDayRxtDetail(yesterdayHashMap.get(d.getCode()), d.getOpen(), d.getCode(), d.getName(), l))
-                                    .forEach(shareDayRxtDetailDao::insert);
+                                     .filter(Objects::nonNull)
+                                    .collect(Collectors.toList());
+                            shareDayRxtDetailDao.insert(shareDayRxtDetails);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -202,18 +204,24 @@ public class SynchronizedServiceImpl implements SynchronizedService {
     }
 
     private ShareDayRxtDetail toShareDayRxtDetail(Double afterDayClose, Double todayOpen, String code, String name, String str) {
-        String[] params = str.split("\\t");
-        ShareDayRxtDetail shareDayRxtDetail = new ShareDayRxtDetail();
-        shareDayRxtDetail.setCode(code);
-        shareDayRxtDetail.setName(name);
-        shareDayRxtDetail.setDate(DateUtil.parse(params[0]));
-        shareDayRxtDetail.setTradeTime(DateUtil.parse(params[1], "HHmm"));
-        shareDayRxtDetail.setPrice(Double.valueOf(params[5]));
-        shareDayRxtDetail.setPriceChange(afterDayClose == null ? null : afterDayClose - shareDayRxtDetail.getPrice());
-        shareDayRxtDetail.setP1Change(afterDayClose == null ? null : NumberUtil.percent(afterDayClose, shareDayRxtDetail.getPrice()));
-        shareDayRxtDetail.setNum(Integer.valueOf(params[6]));
-        shareDayRxtDetail.setMoney(Double.valueOf(params[7]));
-        return shareDayRxtDetail;
+        try {
+            String[] params = str.split("\\t");
+            ShareDayRxtDetail shareDayRxtDetail = new ShareDayRxtDetail();
+            shareDayRxtDetail.setCode(code);
+            shareDayRxtDetail.setName(name);
+            shareDayRxtDetail.setDate(DateUtil.parse(params[0]));
+            shareDayRxtDetail.setTradeTime(DateUtil.parse(params[1], "HHmm"));
+            shareDayRxtDetail.setPrice(Double.valueOf(params[5]));
+            shareDayRxtDetail.setPriceChange(afterDayClose == null ? null : afterDayClose - shareDayRxtDetail.getPrice());
+            shareDayRxtDetail.setP1Change(afterDayClose == null ? null : NumberUtil.percent(afterDayClose, shareDayRxtDetail.getPrice()));
+            shareDayRxtDetail.setNum(Integer.valueOf(params[6]));
+            shareDayRxtDetail.setMoney(Double.valueOf(params[7]));
+            return shareDayRxtDetail;
+        } catch (Throwable e) {
+            System.out.println("****************************" + str);
+            return null;
+        }
+
     }
 
     private String shareSingeDayToString(ShareDay shareSingeDay) {
