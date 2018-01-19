@@ -29,5 +29,17 @@ public class ShareDay extends Pojo {
     private Double v1Ma20;
     private Double turnover;
 
+    @Override
+    public boolean equals(Object object) {
+        if (object == null) {
+            return false;
+        }
+        return code.equals(((ShareDay)object).code);
+    }
+
+    @Override
+    public int hashCode() {
+        return code.hashCode();
+    }
 
 }

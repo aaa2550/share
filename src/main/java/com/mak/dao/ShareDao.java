@@ -16,7 +16,7 @@ public interface ShareDao {
             "values(:1.code,:1.name,:1.industry,:1.area,:1.pe,:1.outstanding,:1.totals,:1.totalAssets,:1.liquidAssets,:1.fixedAssets,:1.esp,:1.bvps,:1.pb,:1.timeToMarket,:1.undp,:1.holders)")
     int insert(List<Share> shares);
 
-    @SQL("select code,name from #table")
+    @SQL("select code,name,timeToMarket from #table")
     List<Share> findAll();
 
     @SQL("select * from #table where code=:1")

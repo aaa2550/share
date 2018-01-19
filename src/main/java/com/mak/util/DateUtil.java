@@ -3,6 +3,7 @@ package com.mak.util;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
 /**
@@ -40,6 +41,10 @@ public class DateUtil {
 
     public static String format(Date date, String format) {
         return getDateFormat(format).format(date);
+    }
+
+    public static Date nextDay(Date date) {
+        return new Date(date.getTime() + 1000 * 60 * 60 * 24);
     }
 
 }

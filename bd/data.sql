@@ -82,3 +82,20 @@ CREATE TABLE `proxy_info` (
   `ip` varchar(200) NOT NULL COMMENT 'IP',
   `port` varchar(200) NOT NULL COMMENT '端口'
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `rule_view`;
+CREATE TABLE `rule_view` (
+  `id` int(11) primary key not null auto_increment,
+  `date` TIMESTAMP NOT NULL COMMENT '股票日期',
+  `field1` varchar(200),
+  `field2` varchar(200),
+  `field3` varchar(200),
+  `field4` varchar(200),
+  `field5` varchar(200),
+  `field6` varchar(200),
+  `field7` varchar(200),
+  `field8` varchar(200),
+  `field9` varchar(200),
+  `field10` varchar(200),
+  KEY `index_date` USING BTREE (`date`),
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
