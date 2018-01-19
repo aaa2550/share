@@ -13,4 +13,9 @@ public interface SummaryService {
      */
     void summaryByYesterdayUpStopOrTurnover(Date timeToMarket);
 
+    /**
+     * 每天的龙头股
+     */
+    void dayFaucet();
+
 }

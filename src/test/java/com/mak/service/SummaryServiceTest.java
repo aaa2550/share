@@ -29,4 +29,8 @@ public class SummaryServiceTest {
         summaryService.summaryByYesterdayUpStopOrTurnover(DateUtil.parse("2017-10-09"));
     }
 
+    @Test
+    public void testDayFaucet() {
+        summaryService.dayFaucet();
+    }
 }

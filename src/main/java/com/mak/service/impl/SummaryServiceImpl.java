@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -62,6 +63,19 @@ public class SummaryServiceImpl implements SummaryService {
 
     }
 
+    @Override
+    public void dayFaucet() {
+        Date currentDay = DateUtil.parse("2017-01-01");
+        Date today = new Date();
+        List<ShareDay> currentDays;
+
+        while (currentDay.before(today)) {
+            currentDays = shareDayDao.find(currentDay);
+            print(currentDay, currentDays);
+            currentDay = DateUtil.nextDay(currentDay);
+        }
+    }
+
     private void print(Date currentDay, Set<String> markets, List<ShareDay> yesterdays, List<ShareDay> currentDays) {
         Set<ShareDay> upStop = yesterdays.parallelStream()
                 .filter(d->d.getP1Change()>=9.97)
@@ -74,11 +88,11 @@ public class SummaryServiceImpl implements SummaryService {
                 .filter(upStop::contains)
                 .collect(Collectors.toSet());
         Set<ShareDay> turnoverTop10 = yesterdays.parallelStream()
-                        .filter(s->s.getTurnover()!=null)
-                        .sorted((s1, s2)->s2.getTurnover() - s1.getTurnover() == 0.0 ? 0 : s2.getTurnover() - s1.getTurnover() > 0 ? 1 : -1)
-                        .filter(d->markets.isEmpty()||markets.contains(d.getCode()))
-                        .limit(10)
-                        .collect(Collectors.toSet());
+                .filter(s->s.getTurnover()!=null)
+                .sorted((s1, s2)->s2.getTurnover() - s1.getTurnover() == 0.0 ? 0 : s2.getTurnover() - s1.getTurnover() > 0 ? 1 : -1)
+                .filter(d->markets.isEmpty()||markets.contains(d.getCode()))
+                .limit(10)
+                .collect(Collectors.toSet());
         Set<ShareDay> turnover = currentDays.parallelStream()
                 .filter(d->d.getP1Change()>=0.0)
                 .filter(turnoverTop10::contains)
@@ -95,6 +109,16 @@ public class SummaryServiceImpl implements SummaryService {
         } catch (Throwable e) {
             System.out.println(upStop.size() + "-" + up.size() + "-" + turnoverTop10.size() + "-" + turnover.size());
         }
+
+    }
+
+    private void print(Date currentDay, List<ShareDay> yesterdays) {
+        List<String> upStop = yesterdays.parallelStream()
+                .filter(d->d.getP1Change()>=9.97)
+                .sorted(Comparator.comparingDouble(ShareDay::getP1Change).reversed())
+                .map(s->s.getCode() + ":" + s.getP1Change())
+                .collect(Collectors.toList());
+        logger.info(DateUtil.format(currentDay) + "-" + upStop.toString());
 
     }
 }
