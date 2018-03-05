@@ -6,6 +6,7 @@ import org.jfaster.mango.annotation.SQL;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by lenovo on 2018/1/6.
@@ -38,5 +39,8 @@ public interface ShareDayDao {
 
     @SQL("select * from #table where code=:1 and date>=:2 and date<=:3")
     List<ShareDay> find(String code, Date start, Date end);
+
+    @SQL("select * from #table where code=:1 and date>=:2 order by date")
+    List<ShareDay> startFind(String code, Date start);
 
 }

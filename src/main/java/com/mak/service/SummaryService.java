@@ -7,6 +7,8 @@ import java.util.Date;
  */
 public interface SummaryService {
 
+    void zhangTingGailv(Date timeToMarket);
+
     /**
      * 根据昨日涨停或转换率查看今日的股票走势情况
      * timeToMarket 上市时间在timeToMarket以后的不计算
@@ -17,5 +19,10 @@ public interface SummaryService {
      * 每天的龙头股
      */
     void dayFaucet();
+
+    /**
+     * 柳暗花明又一村
+     */
+    void liuAnHuaMing(String time);
 
 }

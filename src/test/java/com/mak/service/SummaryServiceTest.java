@@ -25,8 +25,21 @@ public class SummaryServiceTest {
      * 根据昨日涨停或转换率查看今日的股票走势情况
      */
     @Test
+    public void testZhangTingGailv() {
+        summaryService.zhangTingGailv(DateUtil.parse("2017-10-09"));
+    }
+
+    /**
+     * 根据昨日涨停或转换率查看今日的股票走势情况
+     */
+    @Test
     public void testSummaryByYesterdayUpStopOrTurnover() {
         summaryService.summaryByYesterdayUpStopOrTurnover(DateUtil.parse("2017-10-09"));
+    }
+
+    @Test
+    public void testLiuAnHuaMing() {
+        summaryService.liuAnHuaMing("2018-01-15");
     }
 
     @Test
